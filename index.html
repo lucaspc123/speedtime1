@@ -40,6 +40,34 @@
         body::-webkit-scrollbar {
             display: none;
         }
+        
+        /* Estilo para a tela cheia */
+        #countdown-display {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            color: #fff;
+            font-size: 20vw;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+        
+        #countdown-timer {
+            font-weight: bold;
+        }
+        
+        #countdown-message {
+            display: none;
+            font-size: 10vw;
+            margin-top: 2rem;
+            animation: pulse 1s infinite;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -80,6 +108,12 @@
         </div>
     </div>
 
+    <!-- Tela de contagem regressiva em tela cheia -->
+    <div id="countdown-display">
+        <div id="countdown-timer">00:10:00</div>
+        <div id="countdown-message">TEMPO ESGOTADO</div>
+    </div>
+
     <script>
         // DOM Elements
         const hoursInput = document.getElementById('hours');
@@ -89,6 +123,13 @@
         const startButton = document.getElementById('start-countdown');
         const testAlertButton = document.getElementById('test-alert');
         const resetButton = document.getElementById('reset');
+        const countdownDisplay = document.getElementById('countdown-display');
+        const countdownTimer = document.getElementById('countdown-timer');
+        const countdownMessage = document.getElementById('countdown-message');
+        
+        // Variáveis do contador
+        let countdownInterval;
+        let totalSeconds = 0;
         
         // Input validation
         [hoursInput, minutesInput, secondsInput].forEach(input => {
@@ -126,7 +167,7 @@
         }
         
         function startCountdown() {
-            const totalSeconds = calculateTotalSeconds();
+            totalSeconds = calculateTotalSeconds();
             const message = customMessageInput.value;
             
             if (totalSeconds <= 0) {
@@ -134,94 +175,92 @@
                 return;
             }
             
-            // Create a simple HTML page for the fullscreen display
-            const fullscreenHTML = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Contador Regressivo</title>
-                    <style>
-                        body {
-                            margin: 0;
-                            padding: 0;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            height: 100vh;
-                            width: 100vw;
-                            background-color: black;
-                            color: white;
-                            font-family: Arial, sans-serif;
-                            transition: background-color 0.3s;
-                        }
-                        #countdown {
-                            font-size: 20vw;
-                            font-weight: bold;
-                        }
-                        #message {
-                            display: none;
-                            font-size: 10vw;
-                            font-weight: bold;
-                            text-align: center;
-                            animation: pulse 1s infinite;
-                        }
-                        @keyframes pulse {
-                            0% { transform: scale(1); }
-                            50% { transform: scale(1.05); }
-                            100% { transform: scale(1); }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div id="countdown">${formatTime(totalSeconds)}</div>
-                    <div id="message">${message}</div>
-                    
-                    <script>
-                        let secondsLeft = ${totalSeconds};
-                        const countdownElement = document.getElementById('countdown');
-                        const messageElement = document.getElementById('message');
-                        
-                        const timer = setInterval(() => {
-                            secondsLeft--;
-                            
-                            if (secondsLeft < 0) {
-                                clearInterval(timer);
-                                document.body.style.backgroundColor = '#dc2626';
-                                countdownElement.style.display = 'none';
-                                messageElement.style.display = 'block';
-                                
-                                // Try to play a simple beep sound
-                                try {
-                                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                                    const oscillator = audioCtx.createOscillator();
-                                    const gainNode = audioCtx.createGain();
-                                    
-                                    oscillator.connect(gainNode);
-                                    gainNode.connect(audioCtx.destination);
-                                    
-                                    oscillator.type = 'sine';
-                                    oscillator.frequency.value = 800;
-                                    gainNode.gain.value = 0.1;
-                                    
-                                    oscillator.start();
-                                    setTimeout(() => {
-                                        oscillator.stop();
-                                    }, 1000);
-                                } catch (e) {
-                                    console.log('Audio error:', e);
-                                }
-                                return;
-                            }
-                            
-                            countdownElement.textContent = formatTime(secondsLeft);
-                            
-                            function formatTime(seconds) {
-                                const hrs = Math.floor(seconds / 3600);
-                                const mins = Math.floor((seconds % 3600) / 60);
-                                const secs = seconds % 60;
-                                return \`\${hrs.toString().padStart(2, '0')}:\${mins.toString().padStart(2, '0')}:\${secs.toString().padStart(2, '0')}\`;
-                            }
-                        }, 1000);
-                    </script>
-                <p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=sped-led123/lucas" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
-                </html>
+            // Mostrar a tela de contagem regressiva
+            countdownDisplay.style.display = 'flex';
+            countdownTimer.textContent = formatTime(totalSeconds);
+            countdownMessage.textContent = message;
+            countdownMessage.style.display = 'none';
+            
+            // Iniciar o contador
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+        
+        function updateCountdown() {
+            totalSeconds--;
+            
+            if (totalSeconds < 0) {
+                clearInterval(countdownInterval);
+                countdownDisplay.style.backgroundColor = '#dc2626';
+                countdownTimer.style.display = 'none';
+                countdownMessage.style.display = 'block';
+                playAlertSound();
+                return;
+            }
+            
+            countdownTimer.textContent = formatTime(totalSeconds);
+        }
+        
+        function playAlertSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 800;
+                gainNode.gain.value = 0.1;
+                
+                oscillator.start();
+                setTimeout(() => {
+                    oscillator.stop();
+                }, 1000);
+            } catch (e) {
+                console.log('Audio error:', e);
+            }
+        }
+        
+        function testAlert() {
+            countdownDisplay.style.display = 'flex';
+            countdownDisplay.style.backgroundColor = '#dc2626';
+            countdownTimer.style.display = 'none';
+            countdownMessage.style.display = 'block';
+            playAlertSound();
+            
+            setTimeout(() => {
+                resetCountdown();
+            }, 3000);
+        }
+        
+        function resetCountdown() {
+            clearInterval(countdownInterval);
+            countdownDisplay.style.display = 'none';
+            countdownDisplay.style.backgroundColor = '#000';
+            countdownTimer.style.display = 'block';
+            countdownMessage.style.display = 'none';
+            
+            // Resetar os valores para os padrões
+            hoursInput.value = '00';
+            minutesInput.value = '10';
+            secondsInput.value = '00';
+            customMessageInput.value = 'TEMPO ESGOTADO';
+        }
+        
+        // Event Listeners
+        startButton.addEventListener('click', startCountdown);
+        testAlertButton.addEventListener('click', testAlert);
+        resetButton.addEventListener('click', resetCountdown);
+        
+        // Fechar a tela de contagem ao clicar nela
+        countdownDisplay.addEventListener('click', resetCountdown);
+        
+        // Inicializar os valores
+        validateTimeInput({target: hoursInput});
+        validateTimeInput({target: minutesInput});
+        validateTimeInput({target: secondsInput});
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=sped-led123/lucas" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+</html>
