@@ -1,10 +1,12 @@
 ---
-title: Lucas
-emoji: 🦀
-colorFrom: green
-colorTo: blue
+title: lucas
+emoji: 🐳
+colorFrom: blue
+colorTo: gray
 sdk: static
 pinned: false
+tags:
+  - deepsite
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
